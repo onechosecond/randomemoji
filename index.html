@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>random emoji for you</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            transition: background-color 0.5s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+            -webkit-touch-callout: none;
+        }
+
+        .special-char {
+            font-size: 500px;
+            color: black;
+            font-weight: bold;
+            text-align: center;
+            user-select: none;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .special-char:hover {
+            transform: scale(1.1);
+        }
+
+        .special-char:active {
+            transform: scale(0.95);
+        }
+
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .popup.show {
+            opacity: 1;
+        }
+
+        .tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: normal;
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            white-space: nowrap;
+            min-width: fit-content;
+            max-width: 400px;
+            word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="special-char" id="specialChar"></div>
+    <div class="popup" id="popup">복사되었습니다</div>
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        const backgroundColors = [
+            '#00ffff',
+            '#ffff00',
+            '#ff00ff',
+            '#00ff00',
+            '#FFA500',
+            '#ff0033',
+            '#0033ff'
+        ];
+
+        const specialChars = [
+            '⥀', '↶', '⤶', '⤷', '⤵', '⤴', '➫', '➵', '⤻', '⟳',
+            '⇣', '⥿', '↯', '⥱', '➹', '⥳', '⥷', '⥺', '⥆', '↫',
+            '͠', '̈́', '͋', 'Ʀ', 'ɚ', '૱', '₪', '₽', '௹', '≊',
+            '∳', '≐', '≒', '∵', '⊛', '≜', '≏', '⋫', '∔', '∬',
+            '⋱', '⋳', '⋕', '≝', '≕', '∺', '⊹', '∻', '⋗', '⁂',
+            '⁌', '⁒', '⁜', '©', '‟', '⁙', '⁛', '‽', '¿', '⁎',
+            '#', '⁋', '⁞',
+            '℀', '℁', '☬', '✈', 'ℵ', '⚗', 'Å', '☥', '☊', '⛢',
+            '@', '⚛', '♫', '☣', '✬', '♝', '♚', '♞', '♛',
+            '⚉', '⚈', '♣', '❖', '☚', '✒', '✂', '♻', '☤',
+            '☡', '➲', '✪', '☌', '☩', '☨', '⚔', '❡',
+            '➟', '☋', '⚄', '☢', '⚒', '♱', '♹', '⚘', '⚟',
+            '✠', '№', '✮', '❃', '➽', '➺', '℻', '☫', '✡', 'ℽ',
+            'ℐ', '✎', '☽', '☸', '✄', '❧', '✚', '☞', '☝', '☭',
+            '♆', '☳', '❜', '≛', '⊭', '⊼', '⊾', '⋟', '⊰',
+            '☃', '☂', '☎', '♨', '☄', '♭', '☁', '▒', '¤', '✥',
+            '✴', '❄', '✸', '✾', '✺', '𐦍', '༘', '𖦹', '☺', '◘',
+            '✉', '⌨', '꙰', '〘', '⭆', '☯', '✙', '☠', '〷', 'ლ',
+            '✘', '☹', '⍢', 'ꃼ', 'ꉕ', '〠', 'ꐕ', '⍣', '⍤', 'ˠ',
+            '⊞', '⌭', '⌮', '⌰', '⌬', '⍠', '☗', '◬', '⫸', '╾',
+            '⑀', '﹌', '⑇', '⑆', '⑈', '︴', '〰',
+            '⦇', '⦈', '۝', '✰', '✵', '❈', '✼', '✧', '₴', '₢',
+            '₰', '₫', '៛', '︸', '⟺', '⥄', '゜', '☪', '☮', '♩',
+            '𝄡', '𝄞', '𝄢', '𓏢', '༄', '𖣔', '✏', '𓍝', '⚐', '⛟',
+            '⛨', '⛫', '⛾', '⛿', '⎈', 'ꗃ', '𖣘', '𖠚', '𖡡', '⌖',
+            '⛸', '⛰', '⏱', '⛓', '⛚', '𓃑', '𓀿', '𖥶', '𓏗', '࿊',
+            '࿏', '⩩', '𓊆', '𓊉', '𖥓', '𖥅', '𒁂', '𒀭', '𒀯', '𒆙',
+            '𒀽',             '𒌑', '𖧧', '𖣯', '𓂅', '𖨘', '◌', '➢', '〯', '✌'
+        ];
+
+
+        const charNames = {
+            '⥀': '반시계 화살표 (ANTICLOCKWISE CLOSED CIRCLE ARROW)',
+            '↶': '반시계 화살표 (ANTICLOCKWISE TOP SEMICIRCLE ARROW)',
+            '⤶': '반시계 화살표 (ANTICLOCKWISE TOP SEMICIRCLE ARROW)',
+            '⤷': '시계 화살표 (CLOCKWISE TOP SEMICIRCLE ARROW)',
+            '⤵': '아래쪽 화살표 (ARROW POINTING DOWNWARDS THEN CURVING RIGHTWARDS)',
+            '⤴': '위쪽 화살표 (ARROW POINTING UPWARDS THEN CURVING RIGHTWARDS)',
+            '➫': '오른쪽 화살표 (HEAVY LOWER RIGHT-SHADOWED WHITE RIGHTWARDS ARROW)',
+            '➵': '위쪽 화살표 (HEAVY BLACK CURVED UPWARDS AND RIGHTWARDS ARROW)',
+            '⤻': '화살표 (ANTICLOCKWISE TOP SEMICIRCLE ARROW)',
+            '⟳': '반시계 화살표 (ANTICLOCKWISE GAPPED CIRCLE ARROW)',
+            '⇣': '아래쪽 화살표 (DOWNWARDS WHITE ARROW)',
+            '⥿': '화살표 (ANTICLOCKWISE TRIANGLE-HEADED OPEN CIRCLE ARROW)',
+            '↯': '번개 화살표 (DOWNWARDS ZIGZAG ARROW)',
+            '⥱': '화살표 (ANTICLOCKWISE TRIANGLE-HEADED RIGHTWARDS U-SHAPED ARROW)',
+            '➹': '오른쪽 화살표 (BACK-TILTED SHADOWED WHITE RIGHTWARDS ARROW)',
+            '⥳': '화살표 (CLOCKWISE TRIANGLE-HEADED RIGHTWARDS U-SHAPED ARROW)',
+            '⥷': '화살표 (ANTICLOCKWISE TRIANGLE-HEADED LEFTWARDS U-SHAPED ARROW)',
+            '⥺': '화살표 (CLOCKWISE TRIANGLE-HEADED LEFTWARDS U-SHAPED ARROW)',
+            '⥆': '화살표 (ANTICLOCKWISE TRIANGLE-HEADED RIGHTWARDS U-SHAPED ARROW)',
+            '↫': '왼쪽 화살표 (LEFTWARDS ARROW WITH LOOP)',
+            '͠': '틸드 (COMBINING TILDE OVERLAY)',
+            '̈́': '반대 틸드 (COMBINING TILDE OVERLAY)',
+            '͋': '반대 틸드 (COMBINING TILDE OVERLAY)',
+            'Ʀ': 'YR (LATIN LETTER YR)',
+            'ɚ': 'R (LATIN SMALL LETTER SCHWA WITH HOOK)',
+            '૱': '루피 (GUJARATI RUPEE SIGN)',
+            '₪': '셰켈 (NEW SHEQEL SIGN)',
+            '₽': '루블 (RUBLE SIGN)',
+            '௹': '루피 (TAMIL RUPEE SIGN)',
+            '≊': '근사 (ALMOST EQUAL OR EQUAL TO)',
+            '∳': '적분 (CLOCKWISE CONTOUR INTEGRAL)',
+            '≐': '근사 (APPROACHES THE LIMIT)',
+            '≒': '근사 (APPROXIMATELY EQUAL TO OR THE IMAGE OF)',
+            '∵': '왜냐하면 (BECAUSE)',
+            '⊛': '별 (CIRCLED ASTERISK OPERATOR)',
+            '≜': '정의 (DELTA EQUAL TO)',
+            '≏': '근사 (GEOMETRICALLY EQUIVALENT TO)',
+            '⋫': '포함 (CONTAINS AS NORMAL SUBGROUP OR EQUAL)',
+            '∔': '더하기 (DOT PLUS)',
+            '∬': '이중 적분 (DOUBLE INTEGRAL)',
+            '⋱': '말줄임표 (DOWN RIGHT DIAGONAL ELLIPSIS)',
+            '⋳': '포함 (ELEMENT OF WITH DOT ABOVE)',
+            '⋕': '평행 (EQUAL AND PARALLEL TO)',
+            '≝': '정의 (EQUAL TO BY DEFINITION)',
+            '≕': '정의 (EQUALS COLON)',
+            '∺': '비율 (GEOMETRIC PROPORTION)',
+            '⊹': '별 (HERMITIAN CONJUGATE MATRIX)',
+            '∻': '비율 (HOMOTHETIC)',
+            '⋗': '큰 (GREATER-THAN WITH DOT)',
+            '⁂': '별표 (ASTERISM)',
+            '⁌': '왼쪽 화살표 (LEFTWARDS BULLET)',
+            '⁒': '오른쪽 화살표 (RIGHTWARDS BULLET)',
+            '⁜': '십자가 (DOTTED CROSS)',
+            '©': '저작권 (COPYRIGHT SIGN)',
+            '‟': '따옴표 (DOUBLE LOW-9 QUOTATION MARK)',
+            '⁙': '점 (FIVE DOT PUNCTUATION)',
+            '⁛': '점 (FOUR DOT PUNCTUATION)',
+            '‽': '물음표 (INTERROBANG)',
+            '¿': '역물음표 (INVERTED QUESTION MARK)',
+            '⁎': '별표 (LOW ASTERISK)',
+            '#': '샵 (NUMBER SIGN)',
+            '⁋': '역물음표 (REVERSED PILCROW SIGN)',
+            '⁞': '점 (FOUR DOT MARK)',
+            '℀': 'AC (ACCOUNT OF)',
+            '℁': 'AD (ADDRESSED TO THE SUBJECT)',
+            '☬': '시크교 (KHANDA)',
+            '✈': '비행기 (AIRPLANE)',
+            'ℵ': '알레프 (ALEF SYMBOL)',
+            '⚗': '알렘비크 (ALEMBIC)',
+            'Å': '옹스트롬 (ANGSTROM SIGN)',
+            '☥': '안크 (ANKH)',
+            '☊': '북교점 (ASCENDING NODE)',
+            '⛢': '천왕성 (URANUS)',
+            '@': '골뱅이 (COMMERCIAL AT)',
+            '⚛': '원자 (ATOM SYMBOL)',
+            '❉': '눈송이 (HEAVY EIGHT TEARDROP-SPOKED PROPELLER ASTERISK)',
+            '♫': '음표 (BEAMED EIGHTH NOTES)',
+            '☣': '생물위험 (BIOHAZARD SIGN)',
+            '✬': '별 (HEAVY EIGHT POINTED RECTILINEAR BLACK STAR)',
+            '♝': '체스 비숍 (BLACK CHESS BISHOP)',
+            '♚': '체스 킹 (BLACK CHESS KING)',
+            '♞': '체스 나이트 (BLACK CHESS KNIGHT)',
+            '♛': '체스 퀸 (BLACK CHESS QUEEN)',
+            '⚉': '원 (CIRCLED DOT RIGHT)',
+            '⚈': '원 (CIRCLED DOT LEFT)',
+            '♣': '클럽 (BLACK CLUB SUIT)',
+            '❖': '다이아몬드 (BLACK DIAMOND MINUS WHITE X)',
+            '✿': '꽃 (BLACK FLORETTE)',
+            '☚': '왼쪽 손가락 (LEFTWARDS BLACK HAND)',
+            '✒': '펜 (BLACK NIB)',
+            '✂': '가위 (BLACK SCISSORS)',
+            '♻': '재활용 (BLACK UNIVERSAL RECYCLING SYMBOL)',
+            '☤': '카두케우스 (CADUCEUS)',
+            '☡': '위험 (CAUTION SIGN)',
+            '✓': '체크마크 (CHECK MARK)',
+            '➲': '화살표 (NOTCHED UPPER RIGHT-SHADOWED WHITE RIGHTWARDS ARROW)',
+            '❂': '별 (EIGHT TEARDROP-SPOKED PROPELLER ASTERISK)',
+            '✪': '별 (CIRCLED WHITE STAR)',
+            '☌': '합 (CONJUNCTION)',
+            '☩': '십자가 (CROSS OF JERUSALEM)',
+            '☨': '십자가 (CROSS OF LORRAINE)',
+            '⚔': '검 (CROSSED SWORDS)',
+            '❡': '점 (HEAVY EXCLAMATION MARK ORNAMENT)',
+            '➟': '화살표 (DASHED ARROW)',
+            '☋': '남교점 (DESCENDING NODE)',
+            '⚄': '주사위 5 (DIE FACE-5)',
+            '☢': '방사능 (RADIOACTIVE SIGN)',
+            '⚒': '망치 (HAMMER AND PICK)',
+            '♱': '십자가 (WEST SYRIAC CROSS)',
+            '♹': '재활용 (UNIVERSAL RECYCLING SYMBOL)',
+            '❉': '눈송이 (HEAVY EIGHT TEARDROP-SPOKED PROPELLER ASTERISK)',
+            '⚘': '꽃 (FLOWER)',
+            '⚟': '원 (CIRCLED DOT RIGHT)',
+            '✠': '십자가 (MALTESE CROSS)',
+            '№': '번호 (NUMERO SIGN)',
+            '✮': '별 (HEAVY EIGHT POINTED RECTILINEAR BLACK STAR)',
+            '❃': '눈송이 (HEAVY EIGHT TEARDROP-SPOKED PROPELLER ASTERISK)',
+            '➽': '화살표 (NOTCHED LOWER RIGHT-SHADOWED WHITE RIGHTWARDS ARROW)',
+            '➺': '화살표 (FRONT-TILTED SHADOWED WHITE RIGHTWARDS ARROW)',
+            '℻': 'FAX (FACSIMILE SIGN)',
+            '☫': '파르시 (FARSI SYMBOL)',
+            '✡': '다윗의 별 (STAR OF DAVID)',
+            'ℽ': '감마 (SCRIPT SMALL G)',
+            'ℐ': 'I (SCRIPT CAPITAL I)',
+            '✎': '펜 (LOWER RIGHT PENCIL)',
+            '☽': '초승달 (FIRST QUARTER MOON)',
+            '☸': '법륜 (WHEEL OF DHARMA)',
+            '✄': '가위 (UPPER RIGHT SCISSORS)',
+            '❧': '하트 (HEAVY HEART EXCLAMATION MARK ORNAMENT)',
+            '✚': '십자가 (HEAVY GREEK CROSS)',
+            '☞': '오른쪽 손가락 (RIGHTWARDS BLACK HAND)',
+            '☝': '위쪽 손가락 (UPWARDS BLACK HAND)',
+            '☭': '낫과 망치 (HAMMER AND SICKLE)',
+            '♆': '해왕성 (NEPTUNE)',
+            '☳': '진 (THUNDER)',
+            '❜': '따옴표 (HEAVY SINGLE COMMA QUOTATION MARK ORNAMENT)',
+            '≛': '별 (STAR EQUALS)',
+            '⊭': '아님 (NOT TRUE)',
+            '⊼': '난드 (NAND)',
+            '⊾': '각도 (MEASURED RIGHT ANGLE WITH DOT)',
+            '⋟': '큰 (EQUAL OR PRECEDES)',
+            '⊰': '앞 (PRECEDES UNDER RELATION)',
+            '☃': '눈사람 (SNOWMAN)',
+            '☂': '우산 (UMBRELLA)',
+            '☎': '전화 (BLACK TELEPHONE)',
+            '♨': '온천 (HOT SPRINGS)',
+            '☄': '혜성 (COMET)',
+            '♭': '플랫 (MUSIC FLAT SIGN)',
+            '☁': '구름 (CLOUD)',
+            '▒': '체크 (MEDIUM SHADE)',
+            '¤': '통화 (CURRENCY SIGN)',
+            '✥': '별 (EIGHT POINTED BLACK STAR)',
+            '✴': '별 (EIGHT POINTED BLACK STAR)',
+            '❄': '눈송이 (SNOWFLAKE)',
+            '✸': '별 (EIGHT POINTED BLACK STAR)',
+            '✾': '별 (SIX PETALLED BLACK AND WHITE FLORETTE)',
+            '✺': '별 (SIX PETALLED BLACK AND WHITE FLORETTE)',
+            '𐦍': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '༘': '티베트 문자 (TIBETAN MARK INITIAL YIG MGO MDUN MA)',
+            '𖦹': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '☺': '웃는 얼굴 (WHITE SMILING FACE)',
+            '◘': '사각형 (INVERSE BULLET)',
+            '✉': '편지 (ENVELOPE)',
+            '⌨': '키보드 (KEYBOARD)',
+            '꙰': '키릴 문자 (COMBINING CYRILLIC TEN MILLIONS SIGN)',
+            '〘': '괄호 (LEFT WHITE TORTOISE SHELL BRACKET)',
+            '⭆': '화살표 (RIGHTWARDS ARROW WITH DOUBLE VERTICAL STROKE)',
+            '☠': '해골 (SKULL AND CROSSBONES)',
+            '〷': '괄호 (RIGHT WHITE TORTOISE SHELL BRACKET)',
+            'ლ': '조지아 문자 (GEORGIAN LETTER LAS)',
+            '☹': '우는 얼굴 (WHITE FROWNING FACE)',
+            '⍢': 'APL 기호 (APL FUNCTIONAL SYMBOL CIRCLE JOT)',
+            'ꃼ': '이 문자 (YI SYLLABLE BBO)',
+            'ꉕ': '이 문자 (YI SYLLABLE BBO)',
+            '〠': '우편 (POSTAL MARK FACE)',
+            'ꐕ': '이 문자 (YI SYMBOL NYI)',
+            '⍣': 'APL 기호 (APL FUNCTIONAL SYMBOL STAR DIAERESIS)',
+            '⍤': 'APL 기호 (APL FUNCTIONAL SYMBOL JOT DIAERESIS)',
+            'ˠ': '수식 문자 (MODIFIER LETTER SMALL GAMMA)',
+            '⊞': '수학 기호 (SQUARED PLUS)',
+            '⌭': '기술 기호 (TURNED NOT SIGN)',
+            '⌮': '기술 기호 (ARC)',
+            '⌰': '기술 기호 (SECTION)',
+            '⌬': '기술 기호 (SQUARE FOOT)',
+            '⍠': 'APL 기호 (APL FUNCTIONAL SYMBOL QUAD QUESTION)',
+            '☗': '장기 (BLACK SHOGI PIECE)',
+            '◬': '기하학 (WHITE UP-POINTING TRIANGLE WITH DOT)',
+            '⫸': '수학 화살표 (TRIPLE NESTED LESS-THAN)',
+            '╾': '박스 그리기 (BOX DRAWINGS LIGHT LEFT)',
+            '⑀': '숫자 (DINGBAT CIRCLED SANS-SERIF DIGIT ONE)',
+            '﹌': '문장부호 (WAVY OVERLINE)',
+            '⑇': '숫자 (DINGBAT CIRCLED SANS-SERIF DIGIT SEVEN)',
+            '⑆': '숫자 (DINGBAT CIRCLED SANS-SERIF DIGIT SIX)',
+            '⑈': '숫자 (DINGBAT CIRCLED SANS-SERIF DIGIT EIGHT)',
+            '︴': '문장부호 (PRESENTATION FORM FOR VERTICAL WAVY LOW LINE)',
+            '〰': '문장부호 (WAVY DASH)',
+            '⦇': '수학 괄호 (LEFT WHITE PARENTHESIS)',
+            '⦈': '수학 괄호 (RIGHT WHITE PARENTHESIS)',
+            '۝': '아랍 문자 (ARABIC END OF AYAH)',
+            '✰': '별 (HEAVY EIGHT POINTED RECTILINEAR BLACK STAR)',
+            '✵': '별 (EIGHT POINTED BLACK STAR)',
+            '❈': '별 (HEAVY EIGHT TEARDROP-SPOKED PROPELLER ASTERISK)',
+            '✼': '별 (OPEN CENTRE TEARDROP-SPOKED ASTERISK)',
+            '✧': '별 (WHITE FOUR POINTED STAR)',
+            '₴': '통화 (HRYVNIA SIGN)',
+            '₢': '통화 (CRUZEIRO SIGN)',
+            '₰': '통화 (GERMAN PENNY SYMBOL)',
+            '₫': '통화 (DONG SIGN)',
+            '៛': '통화 (RIEL SIGN)',
+            '︸': '문장부호 (PRESENTATION FORM FOR VERTICAL RIGHT WHITE LENTICULAR BRACKET)',
+            '⟺': '수학 화살표 (LEFT RIGHT DOUBLE ARROW)',
+            '⥄': '화살표 (RIGHTWARDS ARROW OVER LEFTWARDS ARROW)',
+            '゜': '히라가나 (HIRAGANA LETTER SMALL A)',
+            '⚁': '주사위 2 (DIE FACE-2)',
+            '☪': '이슬람 (STAR AND CRESCENT)',
+            '☮': '평화 (PEACE SYMBOL)',
+            '☽': '달 (FIRST QUARTER MOON)',
+            '♩': '음표 (QUARTER NOTE)',
+            '𝄡': '음악 (MUSICAL SYMBOL F CLEF OTTAVA ALTA)',
+            '𝄞': '음악 (MUSICAL SYMBOL TREBLE CLEF)',
+            '𝄢': '음악 (MUSICAL SYMBOL BASS CLEF)',
+            '𓏢': '이집트 상형문자 (EGYPTIAN HIEROGLYPH AA001)',
+            '༄': '티베트 문자 (TIBETAN MARK INITIAL YIG MGO MDUN MA)',
+            '𖣔': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '✏': '연필 (LOWER RIGHT PENCIL)',
+            '𓍝': '이집트 상형문자 (EGYPTIAN HIEROGLYPH W014)',
+            '⚐': '깃발 (WHITE FLAG)',
+            '⛟': '교통 (RAILWAY CAR)',
+            '⛨': '건물 (CHURCH)',
+            '⛫': '건물 (CASTLE)',
+            '⛾': '교통 (PICKUP TRUCK)',
+            '⛿': '교통 (RESTRICTED LEFT ENTRY-1)',
+            '⎈': '기술 (HELM SYMBOL)',
+            'ꗃ': '바무 문자 (BAMUM LETTER MO)',
+            '𖣘': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '𖠚': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '𖡡': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '⌖': '기술 (POSITION INDICATOR)',
+            '⛸': '스포츠 (ICE SKATE)',
+            '⛰': '자연 (MOUNTAIN)',
+            '⏱': '시간 (STOPWATCH)',
+            '⛓': '도구 (CHAINS)',
+            '⛚': '도구 (HAMMER)',
+            '𓃑': '이집트 상형문자 (EGYPTIAN HIEROGLYPH D001)',
+            '𓀿': '이집트 상형문자 (EGYPTIAN HIEROGLYPH A001)',
+            '𖥶': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '𓏗': '이집트 상형문자 (EGYPTIAN HIEROGLYPH U001)',
+            '࿊': '티베트 문자 (TIBETAN SYMBOL NOR BU)',
+            '࿏': '티베트 문자 (TIBETAN SYMBOL NOR BU NYIS KHYIL)',
+            '⩩': '수학 기호 (LEFT SQUARE BRACKET WITH UNDERBAR)',
+            '𓊆': '이집트 상형문자 (EGYPTIAN HIEROGLYPH O001)',
+            '𓊉': '이집트 상형문자 (EGYPTIAN HIEROGLYPH O001)',
+            '𖥓': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '𖥅': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '𒁂': '수메르 문자 (CUNEIFORM SIGN DUG TIMES KUR)',
+            '𒀭': '수메르 문자 (CUNEIFORM SIGN AN)',
+            '𒀯': '수메르 문자 (CUNEIFORM SIGN AN OVER AN)',
+            '𒆙': '수메르 문자 (CUNEIFORM SIGN LAGAB TIMES LAGAB)',
+            '𒀽': '수메르 문자 (CUNEIFORM SIGN AN OVER AN NAGA OPPOSING AN OVER AN)',
+            '𒌑': '수메르 문자 (CUNEIFORM SIGN U OVER U GUNU GUNU)',
+            '𖧧': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '𖣯': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '𓂅': '이집트 상형문자 (EGYPTIAN HIEROGLYPH A001)',
+            '𖨘': '메로이트 문자 (MEROITIC CURSIVE LETTER NAA)',
+            '◌': '원 (DOTTED CIRCLE)',
+            '➢': '화살표 (BLACK RIGHTWARDS ARROWHEAD)',
+            '〯': '문장부호 (HANGZHOU NUMERAL TWENTY)',
+            '✌': '승리 (VICTORY HAND)'
+        };
+
+
+        function getRandomColor() {
+            return backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
+        }
+
+
+        function getRandomChar() {
+            return specialChars[Math.floor(Math.random() * specialChars.length)];
+        }
+
+
+        async function copyUnicodeToClipboard(char) {
+            try {
+                await navigator.clipboard.writeText(char);
+                showPopup();
+            } catch (err) {
+
+                const textArea = document.createElement('textarea');
+                textArea.value = char;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showPopup();
+            }
+        }
+
+
+        function showPopup() {
+            const popup = document.getElementById('popup');
+            popup.classList.add('show');
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 1500);
+        }
+
+
+        function showTooltip(event, char) {
+            const tooltip = document.getElementById('tooltip');
+            const charName = charNames[char] || '알 수 없는 기호';
+            tooltip.textContent = charName;
+            
+
+            tooltip.style.visibility = 'hidden';
+            tooltip.classList.add('show');
+            
+
+            const tooltipRect = tooltip.getBoundingClientRect();
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+
+            let left = event.clientX + 10;
+            let top = event.clientY + 10;
+            
+
+            if (left + tooltipRect.width > windowWidth) {
+                left = event.clientX - tooltipRect.width - 10;
+            }
+            
+
+            if (top + tooltipRect.height > windowHeight) {
+                top = event.clientY - tooltipRect.height - 10;
+            }
+            
+
+            if (left < 0) {
+                left = (windowWidth - tooltipRect.width) / 2;
+            }
+            
+
+            if (top < 0) {
+                top = (windowHeight - tooltipRect.height) / 2;
+            }
+            
+
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            tooltip.style.visibility = 'visible';
+        }
+
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.classList.remove('show');
+            tooltip.style.visibility = 'visible';
+        }
+
+
+        function setRandomContent() {
+            document.body.style.backgroundColor = getRandomColor();
+            const randomChar = getRandomChar();
+            const charElement = document.getElementById('specialChar');
+            charElement.textContent = randomChar;
+            
+
+            charElement.onclick = () => copyUnicodeToClipboard(randomChar);
+            
+
+            charElement.addEventListener('mouseenter', (event) => showTooltip(event, randomChar));
+            charElement.addEventListener('mouseleave', hideTooltip);
+            charElement.addEventListener('mousemove', (event) => {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip.classList.contains('show')) {
+                    
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    const windowWidth = window.innerWidth;
+                    const windowHeight = window.innerHeight;
+                    
+
+                    let left = event.clientX + 10;
+                    let top = event.clientY + 10;
+                    
+
+                    if (left + tooltipRect.width > windowWidth) {
+                        left = event.clientX - tooltipRect.width - 10;
+                    }
+                    if (top + tooltipRect.height > windowHeight) {
+                        top = event.clientY - tooltipRect.height - 10;
+                    }
+                    if (left < 0) {
+                        left = (windowWidth - tooltipRect.width) / 2;
+                    }
+                    if (top < 0) {
+                        top = (windowHeight - tooltipRect.height) / 2;
+                    }
+                    
+                    tooltip.style.left = left + 'px';
+                    tooltip.style.top = top + 'px';
+                }
+            });
+        }
+
+
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+        });
+
+
+        window.addEventListener('load', setRandomContent);
+    </script>
+</body>
+</html>
